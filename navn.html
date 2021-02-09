@@ -1,0 +1,381 @@
+<html>
+<style>
+    .base {
+        margin: 3rem;
+    }
+
+    .content {
+        margin: 0 auto;
+        max-width: 512px;
+    }
+
+    .Algorithm {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.2rem 0;
+    }
+
+    .Algorithm-success {
+        background-color: #afa;
+    }
+
+    .Algorithm-notsomuch {
+        background-color: #faa;
+    }
+
+    .Algorithm-name {
+        font-weight: bold;
+    }
+</style>
+<script src="https://unpkg.com/latinize@0.5.0/latinize.js"></script>
+<script>
+    const algorithms = {
+        simple: (text1, text2) => text1 === text2,
+        dagens: (text1, text2) => {
+            const sanitize = (text) => text.toLowerCase().replaceAll(/\s+/g, "");
+
+            return sanitize(text1) === sanitize(text2);
+        },
+        littMerAvansert: (text1, text2) => {
+
+            const sanitize = (text) => latinize(text.toLowerCase().replaceAll(/\s+/g, ""));
+
+            return sanitize(text1) === sanitize(text2);
+        },
+        fonetisk: (text1, text2) => {
+            const soundex = (text) => {
+                if (!text) {
+                    return '';
+                }
+
+                let s = [];
+                let si = 1;
+                let c;
+
+                //              ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                let mappings = "01230120022455012623010202";
+
+                s[0] = text[0].toUpperCase();
+
+                for (let i = 1, l = text.length; i < l; i++) {
+                    c = (text[i].toUpperCase()).charCodeAt(0) - 65;
+
+                    if (c >= 0 && c <= 25) {
+                        if (mappings[c] != '0') {
+                            if (mappings[c] != s[si - 1]) {
+                                s[si] = mappings[c];
+                                si++;
+                            }
+
+                            if (si > 3) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (si <= 3) {
+                    while (si <= 3) {
+                        s[si] = '0';
+                        si++;
+                    }
+                }
+
+                return s.join("");
+            }
+
+            return soundex(text1) === soundex(text2);
+        },
+        levenshtein: (text1, text2, distanse = 1) => {
+            text1 = latinize(text1.toLowerCase().replaceAll(/s+/g, ''));
+            text2 = latinize(text2.toLowerCase().replaceAll(/s+/g, ''));
+
+            if (text1 === text2) {
+                return true;
+            }
+
+            if (!text1 || !text2) {
+                return false;
+            }
+
+            var m = [];
+            for (var i = 0; i <= text2.length; i++) {
+                m[i] = [i];
+                if (i === 0) {
+                    continue;
+                }
+
+                for (var j = 0; j <= text1.length; j++) {
+                    m[0][j] = j;
+                    if (j === 0) {
+                        continue;
+                    }
+                    m[i][j] = text2.charAt(i - 1) == text1.charAt(j - 1) ? m[i - 1][j - 1] : Math.min(
+                        m[i - 1][j - 1] + 1,
+                        m[i][j - 1] + 1,
+                        m[i - 1][j] + 1
+                    );
+                }
+            }
+
+            // Maks ett tegn feil?
+            return m[text2.length][text1.length] <= distanse;
+        },
+        jaroWinkler: (text1, text2, distanse) => {
+            if (text1 === text2) {
+                return true;
+            }
+
+            return jaro_winkler.distance(text1, text2) >= distanse;
+        }
+    };
+
+    function createResult(algorithName, score) {
+        const nameEl = document.createElement("div");
+        nameEl.className = "Algorithm-name";
+        nameEl.innerText = algorithName;
+
+        const scoreEl = document.createElement("div");
+        scoreEl.innerText = score ? 'Likt' : 'Ulikt';
+
+        const wrapperEl = document.createElement("div");
+        wrapperEl.appendChild(nameEl);
+        wrapperEl.appendChild(scoreEl);
+        wrapperEl.className = "Algorithm " + (score ? 'Algorithm-success' : 'Algorithm-notsomuch');
+
+        return wrapperEl;
+    }
+
+    function runCompare() {
+        const output = document.getElementById("output");
+
+        const navn1 = document.getElementById("navn-1").value;
+        const navn2 = document.getElementById("navn-2").value;
+
+        output.innerHTML = "";
+
+        output.appendChild(
+            createResult("Nøyaktig likt", algorithms.simple(navn1, navn2))
+        );
+
+        output.appendChild(
+            createResult("Dagens løsning", algorithms.dagens(navn1, navn2))
+        );
+
+        output.appendChild(
+            createResult("Godta accenter", algorithms.littMerAvansert(navn1, navn2))
+        );
+
+        output.appendChild(
+            createResult("Fonetisk likhet (soundex)", algorithms.fonetisk(navn1, navn2))
+        );
+
+        output.appendChild(
+            createResult("Levenshtein - maks en i distanse", algorithms.levenshtein(navn1, navn2, 1))
+        );
+
+        output.appendChild(
+            createResult("Levenshtein - maks to i distanse", algorithms.levenshtein(navn1, navn2, 2))
+        );
+
+        output.appendChild(
+            createResult("Jaro Winkler - veldig lik", algorithms.jaroWinkler(navn1, navn2, 0.92))
+        );
+
+        output.appendChild(
+            createResult("Jaro Winkler - ganske lik", algorithms.jaroWinkler(navn1, navn2, 0.9))
+        );
+
+        output.appendChild(
+            createResult("Jaro Winkler - noe likt", algorithms.jaroWinkler(navn1, navn2, 0.85))
+        );
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        runCompare();
+    });
+
+    function settNavn(navn1, navn2) {
+        document.getElementById("navn-1").value = navn1;
+        document.getElementById("navn-2").value = navn2;
+        runCompare();
+    }
+</script>
+
+<body class="base">
+    <div class="content">
+        <h2>Navn</h2>
+        <div class="Input">
+            <div>
+                <label>Navn 1: <input id="navn-1" onchange="runCompare()" onkeyup="runCompare()" /></label>
+            </div>
+            <br />
+            <div>
+                <label>Navn 2: <input id="navn-2" onchange="runCompare()" onkeyup="runCompare()" /></label>
+            </div>
+            <br />
+            <div>
+            <button onclick="settNavn('', '')">Tøm</button>
+        </div>
+        </div>
+        <br />
+        <h3>Eksempler:</h3>
+        <button onclick="settNavn('Mads', 'Mats')">Mats</button>
+        <button onclick="settNavn('Muhammad', 'Mohammed')">Muhammad 1</button>
+        <button onclick="settNavn('Mohammad', 'Muhammed')">Muhammad 2</button>
+        <button onclick="settNavn('Mohamed', 'Mouhamad')">Muhammad 3</button>
+        <button onclick="settNavn('Rashid', 'Rashied')">Rashid 1</button>
+        <button onclick="settNavn('Rachid', 'Rasheed')">Rashid 2</button>
+        <button onclick="settNavn('Geir', 'Kjell')">Forskjellige</button>
+        <button onclick="settNavn('Julie', 'Julia')">Julie/Julia</button>
+        <button onclick="settNavn('Mari', 'Maria')">Mari/Maria</button>
+        <h2>Resultat</h2>
+        <div class="Output" id="output"></div>
+    </div>
+</body>
+
+<script>
+    var jaro_winkler = {};
+
+    /* JS implementation of the strcmp95 C function written by
+    Bill Winkler, George McLaughlin, Matt Jaro and Maureen Lynch,
+    released in 1994 (http://web.archive.org/web/20100227020019/http://www.census.gov/geo/msb/stand/strcmp.c).
+    a and b should be strings. Always performs case-insensitive comparisons
+    and always adjusts for long strings. */
+    jaro_winkler.distance = function (a, b) {
+
+        if (!a || !b) { return 0.0; }
+
+        a = a.trim().toUpperCase();
+        b = b.trim().toUpperCase();
+        var a_len = a.length;
+        var b_len = b.length;
+        var a_flag = []; var b_flag = [];
+        var search_range = Math.floor(Math.max(a_len, b_len) / 2) - 1;
+        var minv = Math.min(a_len, b_len);
+
+        // Looking only within the search range, count and flag the matched pairs. 
+        var Num_com = 0;
+        var yl1 = b_len - 1;
+        for (var i = 0; i < a_len; i++) {
+            var lowlim = (i >= search_range) ? i - search_range : 0;
+            var hilim = ((i + search_range) <= yl1) ? (i + search_range) : yl1;
+            for (var j = lowlim; j <= hilim; j++) {
+                if (b_flag[j] !== 1 && a[j] === b[i]) {
+                    a_flag[j] = 1;
+                    b_flag[i] = 1;
+                    Num_com++;
+                    break;
+                }
+            }
+        }
+
+        // Return if no characters in common
+        if (Num_com === 0) { return 0.0; }
+
+        // Count the number of transpositions
+        var k = 0; var N_trans = 0;
+        for (var i = 0; i < a_len; i++) {
+            if (a_flag[i] === 1) {
+                var j;
+                for (j = k; j < b_len; j++) {
+                    if (b_flag[j] === 1) {
+                        k = j + 1;
+                        break;
+                    }
+                }
+                if (a[i] !== b[j]) { N_trans++; }
+            }
+        }
+        N_trans = Math.floor(N_trans / 2);
+
+        // Adjust for similarities in nonmatched characters
+        var N_simi = 0; var adjwt = jaro_winkler.adjustments;
+        if (minv > Num_com) {
+            for (var i = 0; i < a_len; i++) {
+                if (!a_flag[i]) {
+                    for (var j = 0; j < b_len; j++) {
+                        if (!b_flag[j]) {
+                            if (adjwt[a[i]] === b[j]) {
+                                N_simi += 3;
+                                b_flag[j] = 2;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        var Num_sim = (N_simi / 10.0) + Num_com;
+
+        // Main weight computation
+        var weight = Num_sim / a_len + Num_sim / b_len + (Num_com - N_trans) / Num_com;
+        weight = weight / 3;
+
+        // Continue to boost the weight if the strings are similar
+        if (weight > 0.7) {
+            // Adjust for having up to the first 4 characters in common
+            var j = (minv >= 4) ? 4 : minv;
+            var i;
+            for (i = 0; (i < j) && a[i] === b[i]; i++) { }
+            if (i) { weight += i * 0.1 * (1.0 - weight) };
+
+            // Adjust for long strings.
+            // After agreeing beginning chars, at least two more must agree
+            // and the agreeing characters must be more than half of the
+            // remaining characters.
+            if (minv > 4 && Num_com > i + 1 && 2 * Num_com >= minv + i) {
+                weight += (1 - weight) * ((Num_com - i - 1) / (a_len * b_len - i * 2 + 2));
+            }
+        }
+
+        return weight
+
+    };
+
+    // The char adjustment table used above
+    jaro_winkler.adjustments = {
+        'A': 'E',
+        'A': 'I',
+        'A': 'O',
+        'A': 'U',
+        'B': 'V',
+        'E': 'I',
+        'E': 'O',
+        'E': 'U',
+        'I': 'O',
+        'I': 'U',
+        'O': 'U',
+        'I': 'Y',
+        'E': 'Y',
+        'C': 'G',
+        'E': 'F',
+        'W': 'U',
+        'W': 'V',
+        'X': 'K',
+        'S': 'Z',
+        'X': 'S',
+        'Q': 'C',
+        'U': 'V',
+        'M': 'N',
+        'L': 'I',
+        'Q': 'O',
+        'P': 'R',
+        'I': 'J',
+        '2': 'Z',
+        '5': 'S',
+        '8': 'B',
+        '1': 'I',
+        '1': 'L',
+        '0': 'O',
+        '0': 'Q',
+        'C': 'K',
+        'G': 'J',
+        'E': ' ',
+        'Y': ' ',
+        'S': ' '
+    }
+</script>
+
+</html>
