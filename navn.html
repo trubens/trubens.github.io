@@ -47,13 +47,29 @@
         },
         fonetiskPerNavn: (text1, text2) => {
             // Gjøre om til SOUNDEX per navn
-            const fonetiskeNavn1 = text1.replaceAll(/\s+/g, " ").split(' ').map(soundex);
-            const fonetiskeNavn2 = text2.replaceAll(/\s+/g, " ").split(' ').map(soundex);
+            const fonetiskeNavn1 = text1.replaceAll(/\s+/g, " ").trim().split(' ').map(soundex);
+            const fonetiskeNavn2 = text2.replaceAll(/\s+/g, " ").trim().split(' ').map(soundex);
 
+            // Sjekk forskjeller begge veier
             const disjunkte1 = fonetiskeNavn1.filter(x => !fonetiskeNavn2.includes(x));
             const disjunkte2 = fonetiskeNavn2.filter(x => !fonetiskeNavn1.includes(x));
 
-            return fonetiskeNavn1.length >= 2 && fonetiskeNavn2.length >= 2 && disjunkte1.length <= 1 && disjunkte2.length <= 1;
+            var etNavnLagtTilEllerFjernetEllerLikt = false;
+            
+            // Et navn lagt til
+            if(disjunkte1.length === 1 && disjunkte2.length === 0) {
+                etNavnLagtTilEllerFjernetEllerLikt = true;
+            }
+            // Et navn fjernet
+            else if(disjunkte1.length === 0 && disjunkte2.length === 1) {
+                etNavnLagtTilEllerFjernetEllerLikt = true;
+            }
+            // Ingen endringer
+            else if(disjunkte1.length === 0 && disjunkte2.length === 0) {
+                etNavnLagtTilEllerFjernetEllerLikt = true;
+            }
+
+            return fonetiskeNavn1.length >= 2 && fonetiskeNavn2.length >= 2 && etNavnLagtTilEllerFjernetEllerLikt;
         },
         levenshtein: (text1, text2, distanse = 1) => {
             text1 = latinize(text1.toLowerCase().replaceAll(/s+/g, ''));
