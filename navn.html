@@ -43,48 +43,17 @@
             return sanitize(text1) === sanitize(text2);
         },
         fonetisk: (text1, text2) => {
-            const soundex = (text) => {
-                if (!text) {
-                    return '';
-                }
-
-                let s = [];
-                let si = 1;
-                let c;
-
-                //              ABCDEFGHIJKLMNOPQRSTUVWXYZ
-                let mappings = "01230120022455012623010202";
-
-                s[0] = text[0].toUpperCase();
-
-                for (let i = 1, l = text.length; i < l; i++) {
-                    c = (text[i].toUpperCase()).charCodeAt(0) - 65;
-
-                    if (c >= 0 && c <= 25) {
-                        if (mappings[c] != '0') {
-                            if (mappings[c] != s[si - 1]) {
-                                s[si] = mappings[c];
-                                si++;
-                            }
-
-                            if (si > 3) {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (si <= 3) {
-                    while (si <= 3) {
-                        s[si] = '0';
-                        si++;
-                    }
-                }
-
-                return s.join("");
-            }
-
             return soundex(text1) === soundex(text2);
+        },
+        fonetiskPerNavn: (text1, text2) => {
+            // Gjøre om til SOUNDEX per navn
+            const fonetiskeNavn1 = text1.replaceAll(/\s+/g, " ").split(' ').map(soundex);
+            const fonetiskeNavn2 = text2.replaceAll(/\s+/g, " ").split(' ').map(soundex);
+
+            const disjunkte1 = fonetiskeNavn1.filter(x => !fonetiskeNavn2.includes(x));
+            const disjunkte2 = fonetiskeNavn2.filter(x => !fonetiskeNavn1.includes(x));
+
+            return fonetiskeNavn1.length >= 2 && fonetiskeNavn2.length >= 2 && disjunkte1.length <= 1 && disjunkte2.length <= 1;
         },
         levenshtein: (text1, text2, distanse = 1) => {
             text1 = latinize(text1.toLowerCase().replaceAll(/s+/g, ''));
@@ -171,6 +140,10 @@
         );
 
         output.appendChild(
+            createResult("Fonetisk likhet per navn med maks et navn i forskjell", algorithms.fonetiskPerNavn(navn1, navn2))
+        );
+
+        output.appendChild(
             createResult("Levenshtein - maks en i distanse", algorithms.levenshtein(navn1, navn2, 1))
         );
 
@@ -229,6 +202,9 @@
         <button onclick="settNavn('Geir', 'Kjell')">Forskjellige</button>
         <button onclick="settNavn('Julie', 'Julia')">Julie/Julia</button>
         <button onclick="settNavn('Mari', 'Maria')">Mari/Maria</button>
+        <button onclick="settNavn('Peder Skeidsvoll', 'Peder Lång Skeidsvoll')">Mellomnavn 1</button>
+        <button onclick="settNavn('Shah Mohammed Rais', 'Moahmed Reis')">Mellomnavn 2</button>
+        <button onclick="settNavn('Skeidsvoll Peder Lång', 'Peder Lang Skeidsvoll')">Mellomnavn 3</button>
         <h2>Resultat</h2>
         <div class="Output" id="output"></div>
     </div>
@@ -376,6 +352,47 @@
         'Y': ' ',
         'S': ' '
     }
+
+    const soundex = (text) => {
+                if (!text) {
+                    return '';
+                }
+
+                let s = [];
+                let si = 1;
+                let c;
+
+                //              ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                let mappings = "01230120022455012623010202";
+
+                s[0] = text[0].toUpperCase();
+
+                for (let i = 1, l = text.length; i < l; i++) {
+                    c = (text[i].toUpperCase()).charCodeAt(0) - 65;
+
+                    if (c >= 0 && c <= 25) {
+                        if (mappings[c] != '0') {
+                            if (mappings[c] != s[si - 1]) {
+                                s[si] = mappings[c];
+                                si++;
+                            }
+
+                            if (si > 3) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (si <= 3) {
+                    while (si <= 3) {
+                        s[si] = '0';
+                        si++;
+                    }
+                }
+
+                return s.join("");
+            }
 </script>
 
 </html>
